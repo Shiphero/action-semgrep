@@ -7,7 +7,15 @@ fi
 
 export REVIEWDOG_GITHUB_API_TOKEN="${INPUT_GITHUB_TOKEN}"
 
-semgrep --config="${INPUT_SEMGREP_CONFIG}" --json ${INPUT_SEMGREP_TARGET} \
+# INPUT_SEMGREP_CONFIG as array (support comma)
+IFS=',' read -r -a semgrep_config_array <<< "${INPUT_SEMGREP_CONFIG}"
+
+SEMGREP_CONFIGS=""
+for config in "${semgrep_config_array[@]}"; do
+  SEMGREP_CONFIGS+=" --config=\"${config}\""
+done
+
+semgrep ${INPUT_SEMGREP_CONFIG} --json ${INPUT_SEMGREP_TARGET} \
   | jq -r '.results[] | "\(.extra.severity[0:1]):\(.path):\(.end.line) \(.extra.message)"' \
   | reviewdog \
       -efm="%t:%f:%l %m" \
